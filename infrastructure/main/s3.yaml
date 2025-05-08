@@ -1,0 +1,55 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: S3 bucket for the API to store files
+
+Parameters:
+  ENVIRONMENT:
+    Type: String
+    AllowedValues:
+      - development
+      - production
+    Description: The environment for the stack (e.g., development, production).
+  ApiLambdaRole:
+    Type: String
+    Description: The IAM role for the API Lambda functions.
+
+
+Resources:
+  # S3 bucket for storing media files
+  ApiS3Bucket:
+    Type: 'AWS::S3::Bucket'
+    Properties:
+      BucketName: !Sub "api-fastapi-template-media-files-${ENVIRONMENT}" # Unique bucket name
+      AccessControl: Private # Restrict access to the bucket
+      VersioningConfiguration:
+        Status: Enabled # Enable versioning for file management
+
+  # IAM policy to allow Lambda to access the S3 bucket
+  LambdaS3BucketPolicy:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyName: LambdaS3BucketAccessPolicy
+      Roles:
+        - !Ref ApiLambdaRole
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: 'Allow'
+            Action:
+              - 's3:PutObject'
+              - 's3:GetObject'
+              - 's3:DeleteObject'
+            Resource: !Sub "arn:aws:s3:::${ApiS3Bucket}/*" # Allow Lambda to access objects in the S3 bucket
+
+
+Outputs:
+  ApiS3BucketName:
+    Value: !Ref ApiS3Bucket
+    Description: The name of the S3 bucket created for file storage.
+    Export:
+      Name: "ApiS3BucketName"
+
+  ApiS3BucketArn:
+    Value: !GetAtt ApiS3Bucket.Arn
+    Description: The ARN of the S3 bucket created for file storage.
+    Export:
+      Name: "ApiS3BucketArn"

@@ -1,0 +1,108 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Parameters:
+  # General Parameters
+  ENVIRONMENT:
+    Type: String
+    Default: production
+    AllowedValues:
+      - development
+      - production
+    Description: The environment for the stack (e.g., development, production).
+
+  # Lambda Parameters
+  SecretKey:
+    Type: String
+    #NoEcho: true
+    MinLength: 10
+    Description: Secret key for token encryption.
+
+  GoogleClientId:
+    Type: String
+    Description: Google Client ID for OAuth.
+
+  GoogleClientSecret:
+    Type: String
+    Description: Google Client Secret for OAuth.
+
+  MicrosoftClientId:
+    Type: String
+    Description: Microsoft Client ID for OAuth.
+
+  MicrosoftClientSecret:
+    Type: String
+    Description: Microsoft Client Secret for OAuth.
+
+  MicrosoftTenantId:
+    Type: String
+    Description: Microsoft Tenant ID for OAuth.
+
+  ProductionDomain:
+    Type: String
+    Description: The domain of your application.
+
+  DevelopmentDomain:
+    Type: String
+    Description: The dev domain of your application.
+
+  # RDS Parameters
+  DBUsername:
+    Type: String
+    #NoEcho: true
+    Description: The database admin username.
+
+  DBPassword:
+    Type: String
+    #NoEcho: true
+    Description: The database admin password. Ensure a strong password.
+  
+
+Resources:
+  IAMStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: ./iam.yaml
+      Parameters:
+        VPC: !ImportValue FastapiTemplateVPC
+  
+  LambdaStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: ./lambda.yaml
+      Parameters:
+        ENVIRONMENT: !Ref ENVIRONMENT
+        SecretKey: !Ref SecretKey
+        GoogleClientId: !Ref GoogleClientId
+        GoogleClientSecret: !Ref GoogleClientSecret
+        MicrosoftClientId: !Ref MicrosoftClientId
+        MicrosoftClientSecret: !Ref MicrosoftClientSecret
+        MicrosoftTenantId: !Ref MicrosoftTenantId
+        DBUsername: !Ref DBUsername
+        DBPassword: !Ref DBPassword
+        ProductionDomain : !Ref ProductionDomain
+        DevelopmentDomain : !Ref DevelopmentDomain
+        RDSInstanceEndpoint: !ImportValue ApiRDSInstanceEndpoint
+        RDSInstancePort: !ImportValue ApiRDSInstancePort
+        VPC: !ImportValue FastapiTemplateVPC
+        ApiLambdaRoleArn: !GetAtt IAMStack.Outputs.ApiLambdaRoleArn
+        ApiS3Bucket: !GetAtt S3Stack.Outputs.ApiS3BucketName
+
+  S3Stack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: ./s3.yaml
+      Parameters:
+        ENVIRONMENT: !Ref ENVIRONMENT
+        ApiLambdaRole: !GetAtt IAMStack.Outputs.ApiLambdaRole
+
+  APIGatewayStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: ./api-gateway.yaml
+      Parameters:
+        ENVIRONMENT: !Ref ENVIRONMENT
+        ProductionDomain : !Ref ProductionDomain
+        DevelopmentDomain : !Ref DevelopmentDomain
+        ApiLambdaFunctionArn: !GetAtt LambdaStack.Outputs.ApiLambdaFunctionArn
+
+

@@ -1,0 +1,142 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Lambda Function for API Gateway
+
+Parameters:
+  ENVIRONMENT:
+    Type: String
+    AllowedValues:
+      - development
+      - production
+    Description: The environment for the stack (e.g., development, production).
+
+  SecretKey:
+    Type: String
+    Description: Secret key for token encryption.
+
+  GoogleClientId:
+    Type: String
+    Description: Google Client ID for OAuth.
+
+  GoogleClientSecret:
+    Type: String
+    Description: Google Client Secret for OAuth.
+
+  MicrosoftClientId:
+    Type: String
+    Description: Microsoft Client ID for OAuth.
+
+  MicrosoftClientSecret:
+    Type: String
+    Description: Microsoft Client Secret for OAuth.
+
+  MicrosoftTenantId:
+    Type: String
+    Description: Microsoft Tenant ID for OAuth.
+
+  DBUsername:
+    Type: String
+    Description: The database admin username.
+
+  DBPassword:
+    Type: String
+    Description: The database admin password. Ensure a strong password.
+
+  ProductionDomain:
+    Type: String
+    Description: The domain of your application.
+  
+  DevelopmentDomain:
+    Type: String
+    Description: The dev domain of your application.
+
+  RDSInstanceEndpoint:
+    Type: String
+    Description: The endpoint of the RDS instance.
+
+  RDSInstancePort:
+    Type: String
+    Description: The port of the RDS instance.
+
+  VPC:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC to deploy the RDS instance in.
+
+  ApiLambdaRoleArn:
+    Type: String
+    Description: The ARN of the IAM role for the API Lambda functions.
+
+  ApiS3Bucket:
+    Type: String
+    Description: The S3 bucket for the API Lambda functions.
+
+
+Resources:
+  # Deploy Lambda Function
+  ApiLambdaFunction:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      FunctionName: 'ApiLambdaFunction'
+      Role: !Ref ApiLambdaRoleArn
+      PackageType: Image
+      Code:
+        ImageUri: !Sub
+          - "${AccountId}.dkr.ecr.${Region}.amazonaws.com/${RepositoryName}:latest"
+          - AccountId: !Ref AWS::AccountId
+            Region: !Ref AWS::Region
+            RepositoryName: !ImportValue ApiECRRepository
+      MemorySize: 512
+      Timeout: 60
+      Environment:
+        Variables:
+          ENVIRONMENT: !Ref ENVIRONMENT
+          FRONTEND_HOST: !If 
+            - IsDev
+            - !Sub "https://*.${DevelopmentDomain}"
+            - !Sub "https://*.${ProductionDomain}"
+          BASE_HOST: !If 
+            - IsDev
+            - !Ref DevelopmentDomain
+            - !Ref ProductionDomain
+          EMAILS_FROM_EMAIL: "your@email.com"
+          EMAILS_FROM_NAME: "From Name"
+          POSTGRES_SERVER: !Ref RDSInstanceEndpoint
+          POSTGRES_PORT: !Ref RDSInstancePort
+          POSTGRES_DB: "api_db"
+          POSTGRES_USER: !Ref DBUsername
+          POSTGRES_PASSWORD: !Ref DBPassword
+          S3_BUCKET_NAME: !Ref ApiS3Bucket
+          SECRET_KEY: !Ref SecretKey
+          GOOGLE_CLIENT_ID: !Ref GoogleClientId
+          GOOGLE_CLIENT_SECRET: !Ref GoogleClientSecret
+          MICROSOFT_CLIENT_ID: !Ref MicrosoftClientId
+          MICROSOFT_CLIENT_SECRET: !Ref MicrosoftClientSecret
+
+
+  # Lambda giving permission for API Gateway to invoke it 
+  ApiLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref ApiLambdaFunction
+      Action: "lambda:InvokeFunction"
+      Principal: "apigateway.amazonaws.com"
+
+
+  # Save logs on CloudWatch logs
+  ApiLambdaLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${ApiLambdaFunction}"
+      RetentionInDays: 3
+      
+
+Conditions:
+  IsDev: !Equals [ !Ref ENVIRONMENT, "development" ]
+
+
+Outputs:
+  ApiLambdaFunctionArn:
+    Description: The ARN of the Lambda function for the API.
+    Value: !GetAtt ApiLambdaFunction.Arn
+    Export:
+      Name: !Sub "ApiLambdaFunctionArn"
+

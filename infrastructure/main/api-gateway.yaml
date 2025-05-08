@@ -1,0 +1,164 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Deploy API Gateway for FastAPI Lambda Function
+
+Parameters:
+  ENVIRONMENT:
+    Type: String
+    AllowedValues:
+      - development
+      - production
+    Description: The environment for the stack (e.g., development, production).
+
+  ProductionDomain:
+    Type: String
+    Description: The domain of your application.
+  
+  DevelopmentDomain:
+    Type: String
+    Description: The dev domain of your application.
+
+  ApiLambdaFunctionArn:
+    Type: String
+    Description: The ARN of the API Lambda function.
+
+
+Resources:
+  # REST API for API Gateway
+  FastapiTemplateRestApi:
+    Type: 'AWS::ApiGateway::RestApi'
+    Properties:
+      Name: 'FastapiTemplateRestApi'
+      Description: 'REST API for FastAPI Lambda Function'
+
+  # Proxy resource for API Gateway
+  ProxyResource:
+    Type: 'AWS::ApiGateway::Resource'
+    Properties:
+      ParentId: !GetAtt FastapiTemplateRestApi.RootResourceId
+      PathPart: '{proxy+}'
+      RestApiId: !Ref FastapiTemplateRestApi
+
+  # ANY method for the root resource
+  ApiLambdaAnyMethodRoot:
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      RestApiId: !Ref FastapiTemplateRestApi
+      ResourceId: !GetAtt FastapiTemplateRestApi.RootResourceId
+      HttpMethod: ANY
+      AuthorizationType: NONE
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ApiLambdaFunctionArn}/invocations"
+
+  # OPTIONS method for the root resource
+  ApiLambdaOptionsMethodRoot:
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      RestApiId: !Ref FastapiTemplateRestApi
+      ResourceId: !GetAtt FastapiTemplateRestApi.RootResourceId
+      HttpMethod: OPTIONS
+      AuthorizationType: NONE
+      Integration:
+        Type: MOCK
+        RequestTemplates:
+          application/json: '{ "statusCode": 200 }'
+        IntegrationResponses:
+          - StatusCode: "200"
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,POST,OPTIONS,ANY'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key'"
+      MethodResponses:
+        - StatusCode: "200"
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Origin: "'*'"
+            method.response.header.Access-Control-Allow-Methods: "'GET,POST,OPTIONS,ANY'"
+            method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key'"
+
+  # ANY method for the proxy resource
+  ApiLambdaAnyMethodProxy:
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      RestApiId: !Ref FastapiTemplateRestApi
+      ResourceId: !Ref ProxyResource
+      HttpMethod: ANY
+      AuthorizationType: NONE
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ApiLambdaFunctionArn}/invocations"
+
+  # OPTIONS method for the proxy resource
+  ApiLambdaOptionsMethodProxy:
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      RestApiId: !Ref FastapiTemplateRestApi
+      ResourceId: !Ref ProxyResource
+      HttpMethod: OPTIONS
+      AuthorizationType: NONE
+      Integration:
+        Type: MOCK
+        RequestTemplates:
+          application/json: '{ "statusCode": 200 }'
+        IntegrationResponses:
+          - StatusCode: "200"
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,POST,OPTIONS,ANY'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key'"
+      MethodResponses:
+        - StatusCode: "200"
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Origin: "'*'"
+            method.response.header.Access-Control-Allow-Methods: "'GET,POST,OPTIONS,ANY'"
+            method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key'"
+
+  # Deploy API Gateway
+  ApiGatewayDeployment:
+    Type: 'AWS::ApiGateway::Deployment'
+    DependsOn:
+      - ApiLambdaAnyMethodRoot
+      - ApiLambdaOptionsMethodRoot
+      - ApiLambdaAnyMethodProxy
+      - ApiLambdaOptionsMethodProxy
+    Properties:
+      RestApiId: !Ref FastapiTemplateRestApi
+      StageName:
+        Fn::If:
+          - IsDev
+          - dev
+          - prod
+
+  # Custom domain name mapping for API Gateway
+  CustomDomainMapping:
+    Type: AWS::ApiGateway::BasePathMapping
+    DependsOn:
+      - ApiGatewayDeployment
+    Properties:
+      DomainName: !If
+        - IsDev
+        - !Sub "api.${DevelopmentDomain}"
+        - !Sub "api.${ProductionDomain}"
+      RestApiId: !Ref FastapiTemplateRestApi
+      Stage: !If
+        - IsDev
+        - dev
+        - prod
+
+  # Deploy API Gateway again
+  ApiGatewaySecondDeployment:
+    Type: 'AWS::ApiGateway::Deployment'
+    DependsOn:
+      - CustomDomainMapping
+    Properties:
+      RestApiId: !Ref FastapiTemplateRestApi
+      StageName:
+        Fn::If:
+          - IsDev
+          - dev
+          - prod
+          
+
+Conditions:
+  IsDev: !Equals [ !Ref ENVIRONMENT, "development" ]

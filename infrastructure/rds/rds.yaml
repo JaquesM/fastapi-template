@@ -1,0 +1,113 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: RDS PostgreSQL for the API
+
+Parameters:
+  ENVIRONMENT:
+    Type: String
+    AllowedValues:
+      - development
+      - production
+    Description: The environment for the stack (e.g., development, production).
+
+  DBUsername:
+    Type: String
+    Description: The database admin username.
+
+  DBPassword:
+    Type: String
+    Description: The database admin password.
+
+  VPC:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC to deploy the RDS instance in.
+
+  PrivateSubnet1:
+    Type: AWS::EC2::Subnet::Id
+    Description: Private subnet 1 for the RDS instance.
+    
+  PrivateSubnet2:
+    Type: AWS::EC2::Subnet::Id
+    Description: Private subnet 2 for the RDS instance.
+
+
+Resources:
+  ApiRDS:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceIdentifier: api-db
+      DBName: api_db
+      AllocatedStorage: 20 # Minimum storage size (in GB)
+      DBInstanceClass: db.t4g.micro # Burstable instance for minimal cost
+      Engine: postgres
+      EngineVersion: 16.3 # Specify a supported version
+      MasterUsername: !Ref DBUsername
+      MasterUserPassword: !Ref DBPassword
+      BackupRetentionPeriod: 7 # Retain backups for 7 days
+      MultiAZ: false # Single AZ for cost-effectiveness
+      PubliclyAccessible: true # !If [IsProd, true, false]
+      StorageType: gp2 # General Purpose SSD
+      DeletionProtection: !If [IsProd, true, false]
+      VPCSecurityGroups:
+        - !Ref RDSSecurityGroup
+      DBSubnetGroupName: !Ref RDSSubnetGroup
+
+  RDSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow inbound PostgreSQL traffic
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        !If
+        - IsProd
+        - 
+          - IpProtocol: tcp
+            FromPort: 5432
+            ToPort: 5432
+            CidrIp: 0.0.0.0/0
+            #SourceSecurityGroupId: !Ref LambdaSecurityGroup
+        - 
+          - IpProtocol: tcp
+            FromPort: 5432
+            ToPort: 5432
+            CidrIp: 0.0.0.0/0
+
+  RDSSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Subnet group for the RDS instance
+      SubnetIds:
+        - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
+
+  # Lambda Security Group should match the RDS Security Group
+  LambdaSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Lambda Security Group
+      VpcId: !Ref VPC
+
+
+
+Conditions:
+  IsProd: !Equals [ !Ref ENVIRONMENT, "production" ]
+
+
+Outputs:
+  ApiRDSInstanceEndpoint:
+    Value: !GetAtt ApiRDS.Endpoint.Address
+    Description: The endpoint of the RDS instance.
+    Export:
+      Name: 'ApiRDSInstanceEndpoint'
+
+  ApiRDSInstancePort:
+    Value: !GetAtt ApiRDS.Endpoint.Port
+    Description: The port of the RDS instance.
+    Export:
+      Name: 'ApiRDSInstancePort'
+
+  ApiLambdaSecurityGroup:
+    Value: !Ref LambdaSecurityGroup
+    Description: Security group for the API Lambda functions.
+    Export:
+      Name: 'ApiLambdaSecurityGroup'
+

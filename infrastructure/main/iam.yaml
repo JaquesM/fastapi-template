@@ -1,0 +1,51 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: IAM resources for the API
+
+Parameters:
+  VPC:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC to deploy the Lambda functions in.
+
+Resources:
+  # IAM Role for Lambda
+  ApiLambdaRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: 'lambda.amazonaws.com'
+            Action: 'sts:AssumeRole'
+      Policies:
+        - PolicyName: LambdaExecutionPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'logs:CreateLogGroup'
+                  - 'logs:CreateLogStream'
+                  - 'logs:PutLogEvents'
+                Resource: 'arn:aws:logs:*:*:*'
+              - Effect: Allow
+                Action:
+                  - 'ses:SendEmail'
+                  - 'ses:SendRawEmail'
+                Resource: '*'
+  
+
+Outputs:
+  ApiLambdaRole:
+    Value: !Ref ApiLambdaRole
+    Description: IAM role for the API Lambda functions
+    Export:
+      Name: 'ApiLambdaRole'
+
+  ApiLambdaRoleArn:
+    Value: !GetAtt ApiLambdaRole.Arn
+    Description: ARN of the IAM role for the API Lambda functions
+    Export:
+      Name: 'ApiLambdaRoleArn'
+

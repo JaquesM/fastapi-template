@@ -1,0 +1,86 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: VPC and Subnets for FastapiTemplate
+
+Resources:
+  FastapiTemplateVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: FastapiTemplateCustomVPC
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: FastapiTemplateInternetGateway
+
+  VPCGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref FastapiTemplateVPC
+      InternetGatewayId: !Ref InternetGateway
+
+  RouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref FastapiTemplateVPC
+      Tags:
+        - Key: Name
+          Value: FastapiTemplateRouteTable
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref RouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  PrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref FastapiTemplateVPC
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: !Select [ 0, !GetAZs '' ]
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: PrivateSubnet1
+
+  PrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref FastapiTemplateVPC
+      CidrBlock: 10.0.2.0/24
+      AvailabilityZone: us-east-1b # !Select [ 1, !GetAZs '' ]
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: PrivateSubnet2
+
+
+Outputs:
+  FastapiTemplateVPC:
+    Value: !Ref FastapiTemplateVPC
+    Description: The VPC for FastapiTemplate.
+    Export:
+      Name: "FastapiTemplateVPC"
+
+  PrivateSubnet1:
+    Value: !Ref PrivateSubnet1
+    Description: The private subnet for FastapiTemplate.
+    Export:
+      Name: "PrivateSubnet1"
+
+  PrivateSubnet2:
+    Value: !Ref PrivateSubnet2
+    Description: The private subnet for FastapiTemplate.
+    Export:
+      Name: "PrivateSubnet2"
+
+
+      
