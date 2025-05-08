@@ -1,8 +1,10 @@
 from fastapi import FastAPI
 from fastapi.routing import APIRoute
 from starlette.middleware.cors import CORSMiddleware
+from mangum import Mangum
 
 from app.core.config import settings
+from app.services.monitoring import logger
 from app.api.v1.main import api_router
 
 def custom_generate_unique_id(route: APIRoute) -> str:
@@ -29,3 +31,11 @@ app.add_middleware(
 # Mount API Routes
 app.include_router(api_router, prefix="/v1")
 
+handler = Mangum(app)
+handler = logger.inject_lambda_context(handler, clear_state=True)
+
+def lambda_handler(event, context):
+    logger.info(f"Lambda event: {event}")
+    response = handler(event, context)
+    logger.info(f"Lambda response: {response}")
+    return response
