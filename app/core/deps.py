@@ -13,7 +13,7 @@ from app.core.db import engine
 from app.core.security.token import ALGORITHM
 from app.crud.customer import get_customer_by_subdomain
 from app.crud.user.user_session import retrieve_active_user_session_by_user_id
-from app.schemas import TokenPayload
+from app.schemas.auth import TokenPayload
 from app.models import User, UserCustomerLink
 from app.models.user import UserRole
 from app.exceptions import auth as AuthExceptions

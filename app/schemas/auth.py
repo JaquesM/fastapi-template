@@ -7,6 +7,12 @@ from pydantic import ConfigDict
 # Types
 AuthProvider = Literal["email", "google", "microsoft"]
 
+
+# Base Schemas
+class TokenPayload(SQLModel):
+    sub: str | None = None
+
+
 # Input Schemas
 class RequestAuthInput(SQLModel):
     email: Optional[str]
