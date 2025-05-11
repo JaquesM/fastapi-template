@@ -1,0 +1,21 @@
+<mjml>
+  <mj-head>
+  	<mj-font name="Nunito"
+    	href="https://fonts.googleapis.com/css?family=Nunito"
+    />
+  </mj-head>
+  <mj-body background-color="#01060e">
+    <mj-section padding-top="40px"></mj-section>
+    <mj-section background-color="#000" border-radius="12px" padding-top="20px" padding="40px 20px">
+      <mj-column vertical-align="middle" width="100%">
+        <mj-text align="center" padding="28px" font-size="32px" font-family="Nunito, sans-serif" color="#fff">Dashboard {{ customer_name }}</mj-text>
+        <mj-text align="left" font-size="16px" padding-left="25px" padding-right="25px" padding-top="30px" font-family="Nunito, sans-serif" color="#eee"><span>Olá {{ username }},</span></mj-text>
+        <mj-text align="left" font-size="16px" padding-left="25px" padding-right="25px" font-family="Nunito, sans-serif" color="#eee">Segue abaixo o link de acesso à plataforma:</mj-text>
+        <mj-button align="center" font-size="22px" font-family="Nunito, sans-serif" font-weight="bold" background-color="#2160c0" border-radius="8px" color="#fff" href="{{ link }}" padding="50px 30px">Acessar Dashboard</mj-button>
+        <mj-text align="center" font-size="14px" padding-left="25px" padding-right="25px" font-family="Nunito, sans-serif" color="#cccccc">Este token é válido por apenas {{ valid_minutes }} minutos.</mj-text>
+        <mj-divider border-color="#eeeeee" border-width="2px"></mj-divider>
+        <mj-text align="center" font-size="14px" padding-left="25px" padding-right="25px" font-family="Nunito, sans-serif" color="#cccccc">Não compartilhe este email com ninguém. Se você não solicitou este email por favor entre em contato imediatamente.</mj-text>
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>
