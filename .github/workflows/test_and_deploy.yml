@@ -1,0 +1,116 @@
+name: Deploy API to AWS
+
+on:
+  push:
+    branches:
+      - prod
+      - dev
+
+jobs:
+  Migrations:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
+
+    - name: Install the project
+      run: uv sync
+
+    - name: Set up environment variables
+      run: |
+        echo "ENVIRONMENT=development" >> $GITHUB_ENV
+        echo "POSTGRES_SERVER=${{ secrets.POSTGRES_SERVER }}" >> $GITHUB_ENV
+        echo "POSTGRES_PORT=5432" >> $GITHUB_ENV
+        echo "POSTGRES_DB=${{ secrets.POSTGRES_DB }}" >> $GITHUB_ENV
+        echo "POSTGRES_USER=${{ secrets.POSTGRES_USER }}" >> $GITHUB_ENV
+        echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}" >> $GITHUB_ENV
+        echo "FRONTEND_HOST=" >> $GITHUB_ENV
+        echo "BASE_HOST=" >> $GITHUB_ENV
+        echo "SECRET_KEY=somesecretkey" >> $GITHUB_ENV
+        echo "GOOGLE_CLIENT_ID=" >> $GITHUB_ENV
+        echo "GOOGLE_CLIENT_SECRET=" >> $GITHUB_ENV
+        echo "MICROSOFT_CLIENT_ID=" >> $GITHUB_ENV
+        echo "MICROSOFT_CLIENT_SECRET=" >> $GITHUB_ENV
+
+    - name: Run migrations
+      run: uv run alembic upgrade head
+
+
+  Tests:
+    runs-on: ubuntu-latest
+    needs: Migrations
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
+
+    - name: Install the project
+      run: uv sync
+
+    - name: Set up environment variables
+      run: |
+        echo "ENVIRONMENT=development" >> $GITHUB_ENV
+        echo "POSTGRES_SERVER=${{ secrets.POSTGRES_SERVER }}" >> $GITHUB_ENV
+        echo "POSTGRES_PORT=5432" >> $GITHUB_ENV
+        echo "POSTGRES_DB=${{ secrets.POSTGRES_DB }}" >> $GITHUB_ENV
+        echo "POSTGRES_USER=${{ secrets.POSTGRES_USER }}" >> $GITHUB_ENV
+        echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}" >> $GITHUB_ENV
+        echo "FRONTEND_HOST=" >> $GITHUB_ENV
+        echo "BASE_HOST=" >> $GITHUB_ENV
+        echo "SECRET_KEY=somesecretkey" >> $GITHUB_ENV
+        echo "GOOGLE_CLIENT_ID=" >> $GITHUB_ENV
+        echo "GOOGLE_CLIENT_SECRET=" >> $GITHUB_ENV
+        echo "MICROSOFT_CLIENT_ID=" >> $GITHUB_ENV
+        echo "MICROSOFT_CLIENT_SECRET=" >> $GITHUB_ENV
+
+    - name: Run tests
+      run: uv run pytest
+
+
+  Deploy:
+    runs-on: ubuntu-latest
+    needs: Tests
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v1
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ vars.AWS_REGION }}
+
+    - name: Log in to Amazon ECR
+      id: ecr_login
+      uses: aws-actions/amazon-ecr-login@v1
+
+    - name: Build, tag, and push the image to Amazon ECR
+      id: build-image
+      env:
+        ECR_REGISTRY: ${{ steps.ecr_login.outputs.registry }}
+        ECR_REPOSITORY: api-repository
+        IMAGE_TAG: latest
+      run: |
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+    - name: Deploy to AWS Lambda
+      env:
+        ECR_REGISTRY: ${{ steps.ecr_login.outputs.registry }}
+        ECR_REPOSITORY: api-repository
+        IMAGE_TAG: latest
+      run: |
+        aws lambda update-function-code --function-name ApiLambdaFunction --image-uri $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
