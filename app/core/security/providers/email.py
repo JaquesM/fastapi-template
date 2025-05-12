@@ -109,8 +109,8 @@ def callback_magic_link(session: Session, callback_input: CallbackAuthInput) -> 
 
 # Helper functions
 def generate_magic_link_token(email: str) -> str:
-    return serializer.dumps(email, salt="vi$ualiz4")
+    return serializer.dumps(email, salt="$ome$alt")
 
 def verify_magic_link_token(token: str) -> str:
-    return serializer.loads(token, salt="vi$ualiz4", max_age=MAGIC_LINK_TOKEN_EXPIRE_MINUTES*60)
+    return serializer.loads(token, salt="$ome$alt", max_age=MAGIC_LINK_TOKEN_EXPIRE_MINUTES*60)
 
