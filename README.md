@@ -1,6 +1,6 @@
 <p align="center">
   <picture>
-    <img alt="FastAPI Template" src="/public/logo_full.png">
+    <img alt="FastAPI Template" width="180" src="/public/logo_full.png">
   </picture>
 </p>
 
