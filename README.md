@@ -1,6 +1,6 @@
 <p align="center">
   <picture>
-    <img alt="FastAPI Template" src="https://private-user-images.githubusercontent.com/62510516/442470822-de9a89d4-f3a8-4adc-9511-890b7e96ca72.png?jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3NDY5MzEwMTcsIm5iZiI6MTc0NjkzMDcxNywicGF0aCI6Ii82MjUxMDUxNi80NDI0NzA4MjItZGU5YTg5ZDQtZjNhOC00YWRjLTk1MTEtODkwYjdlOTZjYTcyLnBuZz9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNTA1MTElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjUwNTExVDAyMzE1N1omWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPTlmZjQ2NmU4OTZmMmExM2VjZTU5MmFjNmJjOTFjNzc4NTdmYmM1ODU1NjNhNTNiMmY1NjE2NTA3YTlkZmEwZGUmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0In0.Re4tbr4Wn93_Ndi0AAVARSzlWlK9smKg9JY748fDgXM">
+    <img alt="FastAPI Template" src="/public/logo_full.png">
   </picture>
 </p>
 
@@ -112,6 +112,8 @@ fastapi run
 <br/>
 
 Or check the [Quick Start](https://github.com/JaquesM/fastapi-template/wiki/getting-started) guide.
+
+<br/>
 
 ## Deploy
 
